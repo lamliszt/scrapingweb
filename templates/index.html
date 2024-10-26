@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUÉT VÀ PHÂN TÍCH DỮ LIỆU WEBSITE</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-image: url('/static/images/BackgroundTrang.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            color: #000000;
+        }
+        .support-box, .guide-box {
+            background-color: rgba(255, 255, 255, 0.9); /* Màu nền trắng với độ trong suốt nhẹ */
+            border: 2px solid #8B4513; /* Màu viền nâu */
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-right: 10px;
+            padding-left: 10px;
+            border-radius: 20px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Tạo hiệu ứng đổ bóng nhẹ */
+        }
+        .content-overlay {
+            background-color: rgba(255, 255, 255, 0.8); /* Màu nền trắng mờ */
+            border: 2px solid #ffffff; /* Màu viền nâu */
+            padding: 20px; /* Tạo khoảng cách bên trong lớp phủ */
+            border-radius: 15px; /* Bo tròn các góc */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Hiệu ứng đổ bóng nhẹ */
+            margin-top: 20px;
+}
+
+        h1 {
+            color: #0080ff;
+            font-size: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }      
+        .icon {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        .icon-question {
+            width: 50px; /* Kích thước icon */
+            height: 50px;
+            margin-left: 3px; /* Khoảng cách giữa tiêu đề và icon */
+            vertical-align: middle; /* Căn giữa icon với tiêu đề */
+        }
+        .url-input {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .url-input input {
+            flex: 1;
+        }
+
+        .url-input button {
+            margin-left: 10px;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        #warning {
+            display: none;
+            color: red;
+            margin-bottom: 15px;
+        }
+
+        #submitBtn, #addUrlBtn {
+            width: 80%;
+            margin: auto;
+            margin-bottom: 10px;
+        }
+
+        .welcome-message h2 {
+            color: #ff6600;
+            margin-bottom: 10px;
+        }
+
+        .welcome-message p {
+            color: #555;
+            font-size: 1.1rem;
+        }
+
+        /* Popup Styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .popup-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .popup-content h3 {
+            color: #0080ff;
+            margin-bottom: 15px;
+        }
+
+        .popup-content p {
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .popup-content button {
+            background: #0080ff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        // Kiểm tra nếu người dùng đã xem popup trước đó chưa
+        function checkPopup() {
+            if (!localStorage.getItem('hasSeenPopup')) {
+                document.getElementById('popupOverlay').style.display = 'flex';
+            }
+        }
+
+        // Đóng popup và lưu trạng thái vào localStorage
+        function closePopup() {
+            document.getElementById('popupOverlay').style.display = 'none';
+            localStorage.setItem('hasSeenPopup', 'true');
+        }
+
+        let urlCount = 1;
+
+        function addUrlInput() {
+            if (urlCount < 10) {
+                urlCount++;
+                const inputContainer = document.getElementById('urlInputs');
+                const newInput = document.createElement('div');
+                newInput.classList.add('url-input');
+                newInput.setAttribute('id', `urlInput${urlCount}`);
+                newInput.innerHTML = `
+                    <input type="url" name="urls" class="form-control" placeholder="Nhập URL của website thứ ${urlCount}" required>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeUrlInput(${urlCount})">Xóa</button>
+                `;
+                inputContainer.appendChild(newInput);
+
+                if (urlCount > 5) {
+                    document.getElementById('warning').style.display = 'block';
+                }
+            }
+        }
+
+        function removeUrlInput(id) {
+            const inputContainer = document.getElementById('urlInputs');
+            const inputToRemove = document.getElementById(`urlInput${id}`);
+            inputContainer.removeChild(inputToRemove);
+            urlCount--;
+
+            const inputs = inputContainer.getElementsByClassName('url-input');
+            for (let i = 0; i < inputs.length; i++) {
+                const input = inputs[i].getElementsByTagName('input')[0];
+                input.setAttribute('placeholder', `Nhập URL của website thứ ${i + 1}`);
+            }
+
+            if (urlCount <= 5) {
+                document.getElementById('warning').style.display = 'none';
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('submitBtn').style.display = 'none';
+        }
+
+        function toggleContent(contentId) {
+            const content = document.getElementById(contentId);
+            if (content.style.display === "none") {
+                content.style.display = "block";
+            } else {
+                content.style.display = "none";
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('popupOverlay').style.display = 'flex';
+        };
+    </script>
+</head>
+<body>
+    <!-- Popup giới thiệu -->
+    <div class="popup-overlay" id="popupOverlay">
+        <div class="popup-content">
+            <h3>Chào mừng mọi người đến với công cụ WebSraping!</h3>
+            <p>Với công cụ này, bạn có thể dễ dàng trích xuất, phân tích và tóm tắt dữ liệu từ nhiều website khác nhau chỉ trong vài bước đơn giản.</p>
+            <button onclick="closePopup()">Bắt đầu sử dụng</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome-message text-center mt-4">
+            <h2 class="font-weight-bold">Chào mừng đến với công cụ WebScraping của chúng tôi!</h2>
+            <p class="lead">Nhanh chóng, chính xác và tiện lợi! Giúp bạn trích xuất, tóm tắt dữ liệu văn bản từ các website chỉ với vài thao tác đơn giản.</p>
+        </div>
+    
+        <!-- Bắt đầu lớp phủ lớn -->
+        <div class="content-overlay">
+            <div class="row mt-4">
+                <!-- Phần bên trái: Tiêu đề và chỗ để điền URL -->
+                <div class="col-md-6">
+                    <h1 class="text-center">
+                        QUÉT VÀ TÓM TẮT NỘI DUNG WEBSITE
+                        <img src="/static/images/broomicon.png" alt="icon" class="icon"> 
+                    </h1>
+                    <div id="warning" class="alert alert-warning text-center">Chỉ nên chọn tối đa 5 website để quét mỗi lần thôi vì càng nhiều thì quét càng lâu đó !!!</div>
+                    <form action="/process_urls" method="POST" onsubmit="return showLoading()">
+                        <div id="urlInputs">
+                            <div class="url-input" id="urlInput1">
+                                <input type="url" name="urls" class="form-control" placeholder="Nhập URL của website thứ 1" required>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="removeUrlInput(1)">Xóa</button>
+                            </div>
+                        </div>
+                        <button type="button" id="addUrlBtn" class="btn btn-secondary btn-block mb-3" onclick="addUrlInput()">Thêm URL Website</button>
+                        <button type="submit" id="submitBtn" class="btn btn-primary btn-block mb-3">Quét Dữ Liệu</button>
+                    </form>
+    
+                    <div id="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Đang quét dữ liệu...</span>
+                        </div>
+                        <p>Đang bắt đầu quét, chờ tầm vài phút nhé không lâu đâu...</p>
+                    </div>
+                </div>
+    
+                <!-- Phần bên phải: Hỗ trợ và hướng dẫn -->
+                <div class="col-md-6">
+                    <div class="support-box">
+                        <h2 onclick="toggleContent('supportContent')" style="cursor: pointer;">
+                            <img src="/static/images/Dauchamhoi.jpg" alt="icon" class="icon-question" onclick="toggleContent('supportContent')" style="cursor: pointer;">
+                            <strong>Mục đích của công cụ này</strong>
+                        </h2>
+                        
+                        <div id="supportContent" style="display: none;">
+                            <ul>
+                                <li>Giúp bạn trích xuất, thu thập, xử lý dữ liệu và tóm tắt nội dụng từ các trang web một cách tự động</li>
+                                <li>Đối với sinh viên, đặc biệt là những người đang làm nghiên cứu khoa học hay các dự án học thuật, công cụ quét dữ liệu có thể giúp thu thập thông tin từ nhiều nguồn khác nhau. Điều này rất hữu ích khi cần cập nhật dữ liệu thị trường, thống kê, hoặc các tài liệu trực tuyến để làm báo cáo và luận văn.</li>
+                                <li>Người dùng bình thường có thể tận dụng công cụ này để tiết kiệm thời gian trong việc thu thập thông tin từ nhiều trang web. Điều này đặc biệt hữu ích khi cần tìm kiếm dữ liệu từ nhiều nguồn mà không muốn mất thời gian vào việc duyệt từng trang một.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="guide-box">
+                        <h2 onclick="toggleContent('guideContent')" style="cursor: pointer;">
+                            <img src="/static/images/Dauchamhoi.jpg" alt="icon" class="icon-question" onclick="toggleContent('guideContent')" style="cursor: pointer;">
+                            <strong>Các bước để quét dữ liệu</strong>
+                        </h2>
+                        <div id="guideContent" style="display: none;">
+                            <ol>
+                                <li><strong>Bước 1:</strong> Truy cập bất kì trang web nào bạn muốn trên thanh công cụ tìm kiếm của trình duyệt mà bạn sử dụng rồi copy URL địa chỉ của website đó.</li>
+                                <li><strong>Bước 2:</strong> Paste vào ô “Nhập URL website” ở dưới, chương trình hiện tại sẽ hỗ trợ tối đa quét một lần 10 website, tuy nhiên thời gian quét sẽ khá lâu phụ thuộc vào độ phức tạp về nội dung của trang web được quét, và tốc độ đường truyền mạng.</li>
+                                <li><strong>Bước 3:</strong> Bấm vào nút “Quét dữ liệu” dưới cùng rồi chờ khoảng từ một vài phút, sau khi quét xong, chương trình sẽ tự động down về thông tin tóm tắt và phân tích của trang web mà bạn muốn quét dưới định dạng file excel (.xslx).</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Kết thúc lớp phủ lớn -->
+    </div>
+    
+    
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
